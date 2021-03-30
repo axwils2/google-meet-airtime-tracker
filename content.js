@@ -77,7 +77,7 @@ function stopMonitoring() {
     observer.disconnect();
     observer = null;
 
-    const alertArray = [];
+    const alertArray = ['Summary of Estimated Air Time Usage:'];
     const total = totalTalkTime();
 
     Object.keys(participants).forEach(function(participantKey) {

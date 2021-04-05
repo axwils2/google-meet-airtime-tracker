@@ -69,7 +69,6 @@ function startMonitoring() {
   });
 
   observer.observe(observerTarget, observerConfig);
-  console.log('Monitoring!');
 }
 
 function stopMonitoring() {
@@ -88,8 +87,6 @@ function stopMonitoring() {
     alert(alertArray.join('\n'));
     
   }
-
-  console.log('Monitoring stopped!');
 }
 
 chrome.runtime.onMessage.addListener(
@@ -97,9 +94,13 @@ chrome.runtime.onMessage.addListener(
     if (request.message === "clicked_browser_action") {
       if (observer) {
         stopMonitoring();
+        sendResponse({ monitoring: false });
       } else {
         startMonitoring();
+        sendResponse({ monitoring: true });
       }
+
+      return true;
     }
   }
 );

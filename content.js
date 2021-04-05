@@ -69,7 +69,17 @@ function startMonitoring() {
   });
 
   observer.observe(observerTarget, observerConfig);
+  displayNotification();
 }
+
+function displayNotification() {
+  var el = $("<div id='video-call-monitoring-notification' style='position: fixed; top: 50%; right: calc(50% - 80px); width: 160px; z-index: 2000; background-color: #c71a1a; padding: 8px; color: white; text-align: center; border-radius: 4px;'>Monitoring Started!</div>");
+  $(document.body).append(el);
+
+  setTimeout(function() {
+    el.remove();
+	}, 3000);
+};
 
 function stopMonitoring() {
   if (observer) {

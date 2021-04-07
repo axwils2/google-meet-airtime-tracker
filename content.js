@@ -36,7 +36,7 @@ function defaultParticipant(name) {
   return { name: name, count: 0 };
 };
 
-function participantId(target) {
+function googleMeetParticipantId(target) {
   const idString =  $(target)?.parent()?.parent()?.parent()?.parent()?.attr('data-initial-participant-id');
   if (!idString) return;
 
@@ -57,7 +57,7 @@ function startMonitoring() {
         if (!attributeValue || !attributeValue.includes(GOOGLE_MEET_SPEAKING_ICON_TARGET_CLASS)) return;
 
         const nameEl = speakingIconTarget.parent().next()[0];
-        const id = participantId(speakingIconTarget);
+        const id = googleMeetParticipantId(speakingIconTarget);
 
         if (!nameEl || !id) return;
 

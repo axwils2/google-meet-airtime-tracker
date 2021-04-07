@@ -1,8 +1,10 @@
 // content.js
 let observer = null;
 
-const OBSERVER_TARGET_CLASS = ".zWfAib";
-const SPEAKING_ICON_TARGET_CLASS = "IisKdb";
+const GOOGLE_MEET_OBSERVER_TARGET_CLASS = ".zWfAib";
+const GOOGLE_MEET_SPEAKING_ICON_TARGET_CLASS = "IisKdb";
+const MS_TEAMS_OBSERVER_TARGET_CLASS = ".ts-main";
+const MS_TEAMS_SPEAKING_ICON_TARGET_CLASS = 'speaking';
 
 const participants = {};
 const observerConfig = {
@@ -43,20 +45,16 @@ function participantId(target) {
 };
 
 function startMonitoring() {
-  console.log(window.location);
   const host = window.location.host;
-  console.log(host);
-  console.log(host.includes('meet.google'));
 
   if (host.includes('meet.google')) {
-    console.log('start monitoring for google meet');
-    const observerTarget = $(OBSERVER_TARGET_CLASS)[0];
+    const observerTarget = $(GOOLE_MEET_OBSERVER_TARGET_CLASS)[0];
 
     observer = new MutationObserver(function(mutations, obs) {
       mutations.forEach(function(mutation) {
         const speakingIconTarget = $(mutation.target)
         const attributeValue = speakingIconTarget.prop(mutation.attributeName);
-        if (!attributeValue || !attributeValue.includes(SPEAKING_ICON_TARGET_CLASS)) return;
+        if (!attributeValue || !attributeValue.includes(GOOGLE_MEET_SPEAKING_ICON_TARGET_CLASS)) return;
 
         const nameEl = speakingIconTarget.parent().next()[0];
         const id = participantId(speakingIconTarget);
@@ -78,7 +76,32 @@ function startMonitoring() {
     observer.observe(observerTarget, observerConfig);
     displayNotification();
   } else if (host.includes('teams.microsoft')) {
-    console.log('start monitoring for microsoft teams');
+    const observerTarget = $(MS_TEAMS_OBSERVER_TARGET_CLASS)[0];
+
+    observer = new MutationObserver(function(mutations, obs) {
+      mutations.forEach(function(mutation) {
+        const speakingIconTarget = $(mutation.target)
+        const attributeValue = speakingIconTarget.prop(mutation.attributeName);
+        if (!attributeValue || !attributeValue.includes(MS_TEAMS_SPEAKING_ICON_TARGET_CLASS)) return;
+
+        const id = speakingIconTarget.attr('id');
+        if (!id) return;
+        const nameElId = id.replace('voice', 'name');
+        const nameEl = $(`#${nameElId} span`)[0];
+
+        if (!nameEl) return;
+
+        const name = removePercentageString($(nameEl).text());
+        const participant = participants[id] || defaultParticipant(name);
+        const total = totalTalkTime();
+        participant.count += 1;
+
+        $(nameEl).text(name + talkPercentageString(participant.count, total));
+        participants[id] = participant;
+      });
+    });
+
+    observer.observe(observerTarget, observerConfig);
     displayNotification();
   }
 }

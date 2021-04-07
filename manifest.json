@@ -6,7 +6,7 @@
     {
       "matches": [
         "https://meet.google.com/*",
-        "https://teams.microsoft.com/_#/"
+        "*://teams.microsoft.com/*"
       ],
       "js": ["jquery-3.6.0.min.js", "content.js"]
     }

@@ -43,33 +43,44 @@ function participantId(target) {
 };
 
 function startMonitoring() {
-  const observerTarget = $(OBSERVER_TARGET_CLASS)[0];
+  console.log(window.location);
+  const host = window.location.host;
+  console.log(host);
+  console.log(host.includes('meet.google'));
 
-  observer = new MutationObserver(function(mutations, obs) {
-    mutations.forEach(function(mutation) {
-      const speakingIconTarget = $(mutation.target)
-      const attributeValue = speakingIconTarget.prop(mutation.attributeName);
-      if (!attributeValue || !attributeValue.includes(SPEAKING_ICON_TARGET_CLASS)) return;
+  if (host.includes('meet.google')) {
+    console.log('start monitoring for google meet');
+    const observerTarget = $(OBSERVER_TARGET_CLASS)[0];
 
-      const nameEl = speakingIconTarget.parent().next()[0];
-      const id = participantId(speakingIconTarget);
+    observer = new MutationObserver(function(mutations, obs) {
+      mutations.forEach(function(mutation) {
+        const speakingIconTarget = $(mutation.target)
+        const attributeValue = speakingIconTarget.prop(mutation.attributeName);
+        if (!attributeValue || !attributeValue.includes(SPEAKING_ICON_TARGET_CLASS)) return;
 
-      if (!nameEl || !id) return;
+        const nameEl = speakingIconTarget.parent().next()[0];
+        const id = participantId(speakingIconTarget);
 
-      const name = removePercentageString($(nameEl).text());
-      if (name.includes('Presentation (')) return;
+        if (!nameEl || !id) return;
 
-      const participant = participants[id] || defaultParticipant(name);
-      const total = totalTalkTime();
-      participant.count += 1;
+        const name = removePercentageString($(nameEl).text());
+        if (name.includes('Presentation (')) return;
 
-      $(nameEl).text(name + talkPercentageString(participant.count, total));
-      participants[id] = participant;
+        const participant = participants[id] || defaultParticipant(name);
+        const total = totalTalkTime();
+        participant.count += 1;
+
+        $(nameEl).text(name + talkPercentageString(participant.count, total));
+        participants[id] = participant;
+      });
     });
-  });
 
-  observer.observe(observerTarget, observerConfig);
-  displayNotification();
+    observer.observe(observerTarget, observerConfig);
+    displayNotification();
+  } else if (host.includes('teams.microsoft')) {
+    console.log('start monitoring for microsoft teams');
+    displayNotification();
+  }
 }
 
 function displayNotification() {

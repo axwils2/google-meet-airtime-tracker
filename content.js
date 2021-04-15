@@ -68,6 +68,9 @@ function startObserving() {
 
         if (!nameEl || !id) return;
 
+        const name = removePercentageString($(nameEl).text());
+        if (name.includes('Presentation (')) return;
+
         const participant = participants[id] || defaultParticipant(name);
 
         participant.count += 1;

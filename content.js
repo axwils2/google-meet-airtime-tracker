@@ -1,5 +1,6 @@
 // content.js
 let observer = null;
+let intervalId = null;
 
 const GOOGLE_MEET_OBSERVER_TARGET_CLASS = ".zWfAib";
 const GOOGLE_MEET_SPEAKING_ICON_TARGET_CLASS = "IisKdb";
@@ -33,7 +34,7 @@ function talkPercentageString(count, total) {
 };
 
 function defaultParticipant(name) {
-  return { name: name, count: 0 };
+  return { name: name, count: 0, nameEl: null };
 };
 
 function googleMeetParticipantId(target) {
@@ -45,10 +46,16 @@ function googleMeetParticipantId(target) {
 };
 
 function startMonitoring() {
+  startObserving();
+  startInterval();
+  displayNotification();
+}
+
+function startObserving() {
   const host = window.location.host;
 
   if (host.includes('meet.google')) {
-    const observerTarget = $(GOOLE_MEET_OBSERVER_TARGET_CLASS)[0];
+    const observerTarget = $(GOOGLE_MEET_OBSERVER_TARGET_CLASS)[0];
 
     observer = new MutationObserver(function(mutations, obs) {
       mutations.forEach(function(mutation) {
@@ -61,20 +68,15 @@ function startMonitoring() {
 
         if (!nameEl || !id) return;
 
-        const name = removePercentageString($(nameEl).text());
-        if (name.includes('Presentation (')) return;
-
         const participant = participants[id] || defaultParticipant(name);
-        const total = totalTalkTime();
-        participant.count += 1;
 
-        $(nameEl).text(name + talkPercentageString(participant.count, total));
+        participant.count += 1;
+        participant.nameEl = nameEl;
         participants[id] = participant;
-      });
+      })
     });
 
     observer.observe(observerTarget, observerConfig);
-    displayNotification();
   } else if (host.includes('teams.microsoft')) {
     const observerTarget = $(MS_TEAMS_OBSERVER_TARGET_CLASS)[0];
 
@@ -86,6 +88,7 @@ function startMonitoring() {
 
         const id = speakingIconTarget.attr('id');
         if (!id) return;
+
         const nameElId = id.replace('voice', 'name');
         const nameEl = $(`#${nameElId} span`)[0];
 
@@ -102,8 +105,29 @@ function startMonitoring() {
     });
 
     observer.observe(observerTarget, observerConfig);
-    displayNotification();
   }
+}
+
+function startInterval() {
+  intervalId = setInterval(function() {
+    const alertArray = ['Summary of Estimated Air Time Usage:'];
+    const total = totalTalkTime();
+
+    Object.keys(participants).forEach(function(participantKey) {
+      const participant = participants[participantKey];
+      alertArray.push(participant.name + ' ' + talkPercentageString(participant.count, total));
+
+      updateParticipantName(participant, total);
+    });
+
+    chrome.runtime.sendMessage({ message: "summary_updated", alertText: alertArray.join('\n') });
+  }, 1000);
+}
+
+function updateParticipantName(participant, total) {
+  const nameEl = participant.nameEl;
+  const name = removePercentageString($(nameEl).text());
+  $(nameEl).text(name + talkPercentageString(participant.count, total));
 }
 
 function displayNotification() {
@@ -119,18 +143,10 @@ function stopMonitoring() {
   if (observer) {
     observer.disconnect();
     observer = null;
-
-    const alertArray = ['Summary of Estimated Air Time Usage:'];
-    const total = totalTalkTime();
-
-    Object.keys(participants).forEach(function(participantKey) {
-      const participant = participants[participantKey];
-      alertArray.push(participant.name + ' ' + talkPercentageString(participant.count, total));
-    });
-  
-    alert(alertArray.join('\n'));
-    
   }
+
+  if (intervalId) clearInterval(intervalId);
+  chrome.runtime.sendMessage({ message: "monitoring_stopped" });
 }
 
 chrome.runtime.onMessage.addListener(

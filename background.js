@@ -1,4 +1,6 @@
 // background.js
+let alertText = '';
+let activeTabId = null;
 
 // Called when the user clicks on the browser action.
 chrome.browserAction.onClicked.addListener(function(tab) {
@@ -6,8 +8,10 @@ chrome.browserAction.onClicked.addListener(function(tab) {
   // Send a message to the active tab
   chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
     var activeTab = tabs[0];
+    activeTabId = activeTab.id;
+
     chrome.tabs.sendMessage(
-      activeTab.id,
+      activeTabId,
       { message: "clicked_browser_action" },
       function(response) {
         updateIcon(response);
@@ -15,6 +19,26 @@ chrome.browserAction.onClicked.addListener(function(tab) {
     );
   });
 });
+
+chrome.runtime.onMessage.addListener(
+  function(request, sender, sendResponse) {
+    if (request.message === "monitoring_stopped") {
+      displaySummary();
+    } else if (request.message === "summary_updated") {
+      alertText = request.alertText;
+    }
+  }
+);
+
+chrome.tabs.onRemoved.addListener(function(tabId, removed) {
+  if (tabId === activeTabId) displaySummary();
+});
+
+function displaySummary() {
+  if (alertText) alert(alertText);
+  alertText = null;
+  updateIcon({ monitoring: false });
+};
 
 function updateIcon(response) {
   if (response && response.monitoring) {

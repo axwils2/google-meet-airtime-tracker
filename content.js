@@ -1,5 +1,6 @@
 // content.js
 let observer = null;
+let intervalId = null;
 
 const OBSERVER_TARGET_CLASS = ".zWfAib";
 const SPEAKING_ICON_TARGET_CLASS = "IisKdb";
@@ -65,20 +66,26 @@ function startMonitoring() {
 
       $(nameEl).text(name + talkPercentageString(participant.count, total));
       participants[id] = participant;
-
-      const alertArray = ['Summary of Estimated Air Time Usage:'];
-
-      Object.keys(participants).forEach(function(participantKey) {
-        const mainParticipant = participants[participantKey];
-        alertArray.push(mainParticipant.name + ' ' + talkPercentageString(mainParticipant.count, total));
-      });
-
-      chrome.runtime.sendMessage({ message: "summary_updated", alertText: alertArray.join('\n') });
     });
   });
 
   observer.observe(observerTarget, observerConfig);
+  startInterval();
   displayNotification();
+}
+
+function startInterval() {
+  intervalId = setInterval(function() {
+    const alertArray = ['Summary of Estimated Air Time Usage:'];
+    const total = totalTalkTime();
+
+    Object.keys(participants).forEach(function(participantKey) {
+      const participant = participants[participantKey];
+      alertArray.push(participant.name + ' ' + talkPercentageString(participant.count, total));
+    });
+
+    chrome.runtime.sendMessage({ message: "summary_updated", alertText: alertArray.join('\n') });
+  }, 1000);
 }
 
 function displayNotification() {
@@ -94,9 +101,10 @@ function stopMonitoring() {
   if (observer) {
     observer.disconnect();
     observer = null;
-  
-    chrome.runtime.sendMessage({ message: "monitoring_stopped" });
   }
+
+  if (intervalId) clearInterval(intervalId);
+  chrome.runtime.sendMessage({ message: "monitoring_stopped" });
 }
 
 chrome.runtime.onMessage.addListener(

@@ -32,7 +32,7 @@ function talkPercentageString(count, total) {
 };
 
 function defaultParticipant(name) {
-  return { name: name, count: 0 };
+  return { name: name, count: 0, nameEl: null };
 };
 
 function participantId(target) {
@@ -61,10 +61,9 @@ function startMonitoring() {
       if (name.includes('Presentation (')) return;
 
       const participant = participants[id] || defaultParticipant(name);
-      const total = totalTalkTime();
-      participant.count += 1;
 
-      $(nameEl).text(name + talkPercentageString(participant.count, total));
+      participant.count += 1;
+      participant.nameEl = nameEl;
       participants[id] = participant;
     });
   });
@@ -82,10 +81,18 @@ function startInterval() {
     Object.keys(participants).forEach(function(participantKey) {
       const participant = participants[participantKey];
       alertArray.push(participant.name + ' ' + talkPercentageString(participant.count, total));
+
+      updateParticipantName(participant, total);
     });
 
     chrome.runtime.sendMessage({ message: "summary_updated", alertText: alertArray.join('\n') });
   }, 1000);
+}
+
+function updateParticipantName(participant, total) {
+  const nameEl = participant.nameEl;
+  const name = removePercentageString($(nameEl).text());
+  $(nameEl).text(name + talkPercentageString(participant.count, total));
 }
 
 function displayNotification() {

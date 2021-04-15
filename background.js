@@ -22,8 +22,7 @@ chrome.browserAction.onClicked.addListener(function(tab) {
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
     if (request.message === "monitoring_stopped") {
-      if (alertText) alert(alertText);
-      alertText = null;
+      displaySummary();
     } else if (request.message === "summary_updated") {
       alertText = request.alertText;
     }
@@ -31,12 +30,14 @@ chrome.runtime.onMessage.addListener(
 );
 
 chrome.tabs.onRemoved.addListener(function(tabId, removed) {
-  if (tabId === activeTabId) {
-    if (alertText) alert(alertText);
-    alertText = null;
-    updateIcon({ monitoring: false });
-  }
+  if (tabId === activeTabId) displaySummary();
 });
+
+function displaySummary() {
+  if (alertText) alert(alertText);
+  alertText = null;
+  updateIcon({ monitoring: false });
+};
 
 function updateIcon(response) {
   if (response.monitoring) {

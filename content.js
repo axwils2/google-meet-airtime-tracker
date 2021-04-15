@@ -65,6 +65,15 @@ function startMonitoring() {
 
       $(nameEl).text(name + talkPercentageString(participant.count, total));
       participants[id] = participant;
+
+      const alertArray = ['Summary of Estimated Air Time Usage:'];
+
+      Object.keys(participants).forEach(function(participantKey) {
+        const mainParticipant = participants[participantKey];
+        alertArray.push(mainParticipant.name + ' ' + talkPercentageString(mainParticipant.count, total));
+      });
+
+      chrome.runtime.sendMessage({ message: "summary_updated", alertText: alertArray.join('\n') });
     });
   });
 
@@ -85,17 +94,8 @@ function stopMonitoring() {
   if (observer) {
     observer.disconnect();
     observer = null;
-
-    const alertArray = ['Summary of Estimated Air Time Usage:'];
-    const total = totalTalkTime();
-
-    Object.keys(participants).forEach(function(participantKey) {
-      const participant = participants[participantKey];
-      alertArray.push(participant.name + ' ' + talkPercentageString(participant.count, total));
-    });
   
-    alert(alertArray.join('\n'));
-    
+    chrome.runtime.sendMessage({ message: "monitoring_stopped" });
   }
 }
 

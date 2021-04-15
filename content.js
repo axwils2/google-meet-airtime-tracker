@@ -44,7 +44,13 @@ function participantId(target) {
 };
 
 function startMonitoring() {
-  const observerTarget = $(OBSERVER_TARGET_CLASS)[0];
+  startObserving();
+  startInterval();
+  displayNotification();
+}
+
+function startObserving() {
+    const observerTarget = $(OBSERVER_TARGET_CLASS)[0];
 
   observer = new MutationObserver(function(mutations, obs) {
     mutations.forEach(function(mutation) {
@@ -69,8 +75,6 @@ function startMonitoring() {
   });
 
   observer.observe(observerTarget, observerConfig);
-  startInterval();
-  displayNotification();
 }
 
 function startInterval() {

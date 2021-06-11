@@ -4,8 +4,9 @@ let activeTabId = null;
 
 // Called when the user clicks on the browser action.
 chrome.browserAction.onClicked.addListener(function(tab) {
+  console.log('listener added');
   // Send a message to the active tab
-  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+  chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
     var activeTab = tabs[0];
     activeTabId = activeTab.id;
 
@@ -40,7 +41,7 @@ function displaySummary() {
 };
 
 function updateIcon(response) {
-  if (response.monitoring) {
+  if (response && response.monitoring) {
     chrome.browserAction.setBadgeBackgroundColor({ color: "red" });
     chrome.browserAction.setBadgeText({ text: "M" });
   } else {

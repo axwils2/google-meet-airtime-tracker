@@ -1,11 +1,12 @@
 {
   "manifest_version": 2,
   "name": "Video Call Air Time Monitor",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "content_scripts": [
     {
       "matches": [
-        "https://meet.google.com/*"
+        "https://meet.google.com/*",
+        "*://teams.microsoft.com/*"
       ],
       "js": ["jquery-3.6.0.min.js", "content.js"]
     }

@@ -38,12 +38,19 @@ function defaultParticipant(name) {
 };
 
 function googleMeetParticipantId(target) {
-  const idString =  $(target)?.parent()?.parent()?.parent()?.parent()?.attr('data-initial-participant-id');
+  const idString =  $(target)?.parent()?.parent()?.parent()?.attr('data-initial-participant-id');
   if (!idString) return;
 
   const idStringParts = idString.split('/');
   return idStringParts[idStringParts.length - 1];
 };
+
+function googleMeetNameElement(target) {
+  const nameElContainer = $(target)?.parent()?.parent()?.next();
+  if (!nameElContainer) return;
+
+  return nameElContainer.children()?.first()?.children()?.last();
+}
 
 function startMonitoring() {
   startObserving();
@@ -63,9 +70,8 @@ function startObserving() {
         const attributeValue = speakingIconTarget.prop(mutation.attributeName);
         if (!attributeValue || !attributeValue.includes(GOOGLE_MEET_SPEAKING_ICON_TARGET_CLASS)) return;
 
-        const nameEl = speakingIconTarget.parent().next()[0];
+        const nameEl = googleMeetNameElement(speakingIconTarget);
         const id = googleMeetParticipantId(speakingIconTarget);
-
         if (!nameEl || !id) return;
 
         const name = removePercentageString($(nameEl).text());

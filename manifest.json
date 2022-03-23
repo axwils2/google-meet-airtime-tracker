@@ -1,12 +1,11 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "Video Call Air Time Monitor",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "content_scripts": [
     {
       "matches": [
-        "https://meet.google.com/*",
-        "*://teams.microsoft.com/*"
+        "https://meet.google.com/*"
       ],
       "js": ["jquery-3.6.0.min.js", "content.js"]
     }
@@ -16,10 +15,13 @@
     "48": "icon48.png",
     "128": "icon128.png"
   },
-  "browser_action": {
+  "permissions": [
+    "storage"
+  ],
+  "action": {
     "default_icon": "icon16.png"
   },
   "background": {
-    "scripts": ["background.js"]
+    "service_worker": "background.js"
   }
 }

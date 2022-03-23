@@ -2,7 +2,7 @@
 let observer = null;
 let intervalId = null;
 
-const GOOGLE_MEET_OBSERVER_TARGET_CLASS = ".zWfAib";
+const GOOGLE_MEET_OBSERVER_TARGET_CLASS = ".WUFI9b";
 const GOOGLE_MEET_SPEAKING_ICON_TARGET_CLASS = "IisKdb";
 const MS_TEAMS_OBSERVER_TARGET_CLASS = ".ts-main";
 const MS_TEAMS_SPEAKING_ICON_TARGET_CLASS = 'speaking';
@@ -26,11 +26,12 @@ function removePercentageString(string) {
   return string.replace(/ *\([^)]*\%\) */g, "");
 }
 
-function talkPercentageString(count, total) {
+function talkPercentageString(count, total, withPrefix = true) {
   const realPercent = count / total * 100;
   const safePercent = Math.min(realPercent, 100);
+  const prefix = withPrefix ? 'Air Time: ' : '';
 
-  return ' (' + safePercent.toFixed(2) + '%)';
+  return prefix + safePercent.toFixed(0) + '%';
 };
 
 function defaultParticipant(name) {
@@ -38,7 +39,14 @@ function defaultParticipant(name) {
 };
 
 function googleMeetParticipantId(target) {
-  const idString =  $(target)?.parent()?.parent()?.parent()?.attr('data-initial-participant-id');
+  let idStringContainer =  $(target)?.parent()?.parent()?.parent()?.parent()?.parent()
+  let idString = idStringContainer?.attr('data-participant-id');
+
+  if (!idString) {
+    idStringContainer = $(target)?.parent()?.parent()?.parent()?.parent()?.parent()?.parent()?.parent();
+    idString = idStringContainer?.attr('data-participant-id');
+  }
+
   if (!idString) return;
 
   const idStringParts = idString.split('/');
@@ -46,75 +54,64 @@ function googleMeetParticipantId(target) {
 };
 
 function googleMeetNameElement(target) {
-  const nameElContainer = $(target)?.parent()?.parent()?.next();
-  if (!nameElContainer) return;
+  let nameElContainer = $(target)?.parent()?.parent()?.parent()?.parent()?.prev();
+  let nameEl = nameElContainer.children()?.last()?.children()?.first()?.children()?.first();
 
-  return nameElContainer.children()?.first()?.children()?.last();
+  if (!nameEl.text()) {
+    nameElContainer = $(target)?.parent()?.parent()?.parent()?.parent()?.parent()?.parent()?.prev();
+    nameEl = nameElContainer.children()?.last()?.children()?.first()?.children()?.first();
+  }
+
+  if (!nameEl.text()) return;
+
+  return nameEl;
 }
 
-function startMonitoring() {
+async function startMonitoring() {
+  openPanel();
+  await sleep(1000);
   startObserving();
   startInterval();
   displayNotification();
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+};
+
+function openPanel() {
+  if ($(GOOGLE_MEET_OBSERVER_TARGET_CLASS).length > 0) return;
+
+  const icon = $(".google-material-icons:contains('people_outline')");
+  const button = icon.parent()[0];
+
+  button.click();
+};
+
 function startObserving() {
-  const host = window.location.host;
+  const observerTarget = $(GOOGLE_MEET_OBSERVER_TARGET_CLASS)[0];
 
-  if (host.includes('meet.google')) {
-    const observerTarget = $(GOOGLE_MEET_OBSERVER_TARGET_CLASS)[0];
+  observer = new MutationObserver(function(mutations, obs) {
+    mutations.forEach(function(mutation) {
+      const speakingIconTarget = $(mutation.target)
+      const attributeValue = speakingIconTarget.prop(mutation.attributeName);
+      if (!attributeValue || !attributeValue.includes(GOOGLE_MEET_SPEAKING_ICON_TARGET_CLASS)) return;
 
-    observer = new MutationObserver(function(mutations, obs) {
-      mutations.forEach(function(mutation) {
-        const speakingIconTarget = $(mutation.target)
-        const attributeValue = speakingIconTarget.prop(mutation.attributeName);
-        if (!attributeValue || !attributeValue.includes(GOOGLE_MEET_SPEAKING_ICON_TARGET_CLASS)) return;
+      const nameEl = googleMeetNameElement(speakingIconTarget);
+      const id = googleMeetParticipantId(speakingIconTarget);
 
-        const nameEl = googleMeetNameElement(speakingIconTarget);
-        const id = googleMeetParticipantId(speakingIconTarget);
-        if (!nameEl || !id) return;
+      if (!nameEl || !id) return;
 
-        const name = removePercentageString($(nameEl).text());
-        if (name.includes('Presentation (')) return;
+      const name = removePercentageString($(nameEl).text());
+      const participant = participants[id] || defaultParticipant(name);
 
-        const participant = participants[id] || defaultParticipant(name);
+      participant.count += 1;
+      participant.nameEl = nameEl;
+      participants[id] = participant;
+    })
+  });
 
-        participant.count += 1;
-        participant.nameEl = nameEl;
-        participants[id] = participant;
-      })
-    });
-
-    observer.observe(observerTarget, observerConfig);
-  } else if (host.includes('teams.microsoft')) {
-    const observerTarget = $(MS_TEAMS_OBSERVER_TARGET_CLASS)[0];
-
-    observer = new MutationObserver(function(mutations, obs) {
-      mutations.forEach(function(mutation) {
-        const speakingIconTarget = $(mutation.target)
-        const attributeValue = speakingIconTarget.prop(mutation.attributeName);
-        if (!attributeValue || !attributeValue.includes(MS_TEAMS_SPEAKING_ICON_TARGET_CLASS)) return;
-
-        const id = speakingIconTarget.attr('id');
-        if (!id) return;
-
-        const nameElId = id.replace('voice', 'name');
-        const nameEl = $(`#${nameElId} span`)[0];
-
-        if (!nameEl) return;
-
-        const name = removePercentageString($(nameEl).text());
-        const participant = participants[id] || defaultParticipant(name);
-        const total = totalTalkTime();
-        participant.count += 1;
-
-        $(nameEl).text(name + talkPercentageString(participant.count, total));
-        participants[id] = participant;
-      });
-    });
-
-    observer.observe(observerTarget, observerConfig);
-  }
+  observer.observe(observerTarget, observerConfig);
 }
 
 function startInterval() {
@@ -124,19 +121,28 @@ function startInterval() {
 
     Object.keys(participants).forEach(function(participantKey) {
       const participant = participants[participantKey];
-      alertArray.push(participant.name + ' ' + talkPercentageString(participant.count, total));
+      alertArray.push(participant.name + ' - ' + talkPercentageString(participant.count, total, false));
 
-      updateParticipantName(participant, total);
+      updateAirTimeDisplay(participantKey, participant, total);
     });
 
     chrome.runtime.sendMessage({ message: "summary_updated", alertText: alertArray.join('\n') });
   }, 1000);
 }
 
-function updateParticipantName(participant, total) {
+function updateAirTimeDisplay(participantKey, participant, total) {
   const nameEl = participant.nameEl;
-  const name = removePercentageString($(nameEl).text());
-  $(nameEl).text(name + talkPercentageString(participant.count, total));
+  const parentContainer = $(nameEl).parent()?.parent();
+  const lastChild = parentContainer?.children()?.last();
+  const displayContainerId = lastChild.attr('id');
+  const id = 'air-time-' + participantKey;
+  const text = talkPercentageString(participant.count, total);
+
+  if (displayContainerId === id) {
+    $(lastChild).text(text);
+  } else {
+    $(parentContainer).append("<span id='" + id + "' style='font-size: 0.75rem;'>" + text + "</span>")
+  }
 }
 
 function displayNotification() {
@@ -145,7 +151,7 @@ function displayNotification() {
 
   setTimeout(function() {
     el.remove();
-	}, 3000);
+	}, 1000);
 };
 
 function stopMonitoring() {
@@ -155,7 +161,10 @@ function stopMonitoring() {
   }
 
   if (intervalId) clearInterval(intervalId);
-  chrome.runtime.sendMessage({ message: "monitoring_stopped" });
+  chrome.storage.local.get('alertText', function(data) {
+    alert(data.alertText);
+  })
+  chrome.runtime.sendMessage({ message: "monitoring_stopped" })
 }
 
 chrome.runtime.onMessage.addListener(

@@ -1,14 +1,12 @@
 // background.js
-let alertText = '';
-let activeTabId = null;
 
 // Called when the user clicks on the browser action.
-chrome.browserAction.onClicked.addListener(function(tab) {
-  console.log('listener added');
+chrome.action.onClicked.addListener(function(tab) {
   // Send a message to the active tab
   chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
     var activeTab = tabs[0];
     activeTabId = activeTab.id;
+    chrome.storage.local.set({ activeTabId })
 
     chrome.tabs.sendMessage(
       activeTabId,
@@ -22,30 +20,36 @@ chrome.browserAction.onClicked.addListener(function(tab) {
 
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
-    if (request.message === "monitoring_stopped") {
-      displaySummary();
-    } else if (request.message === "summary_updated") {
-      alertText = request.alertText;
+    const { alertText, message } = request;
+
+    if (message === "monitoring_stopped") {
+      clearData();
+    } else if (message === "summary_updated") {
+      chrome.storage.local.set({ alertText });
     }
+
+    return true;
   }
 );
 
 chrome.tabs.onRemoved.addListener(function(tabId, removed) {
-  if (tabId === activeTabId) displaySummary();
+  chrome.storage.local.get('activeTabId', function(data) {
+    if (tabId === data.activeTabId) clearData();
+  })
 });
 
-function displaySummary() {
-  if (alertText) alert(alertText);
-  alertText = null;
+function clearData() {
+  chrome.storage.local.remove(['activeTabId']);
+  chrome.storage.local.remove(['alertText']);
   updateIcon({ monitoring: false });
 };
 
 function updateIcon(response) {
   if (response && response.monitoring) {
-    chrome.browserAction.setBadgeBackgroundColor({ color: "red" });
-    chrome.browserAction.setBadgeText({ text: "M" });
+    chrome.action.setBadgeBackgroundColor({ color: "red" });
+    chrome.action.setBadgeText({ text: "M" });
   } else {
-    chrome.browserAction.setBadgeBackgroundColor({ color:[0, 0, 0, 0] });
-    chrome.browserAction.setBadgeText({ text: "" });
+    chrome.action.setBadgeBackgroundColor({ color:[0, 0, 0, 0] });
+    chrome.action.setBadgeText({ text: "" });
   }
 }

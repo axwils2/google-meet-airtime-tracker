@@ -18,6 +18,18 @@ chrome.action.onClicked.addListener(function(tab) {
   });
 });
 
+chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+  if (changeInfo.audible !== undefined && tab.active) {
+    chrome.tabs.sendMessage(
+      tabId,
+      { message: "meet_started" },
+      function(response) {
+        updateIcon(response);
+      }
+    );
+  }
+});
+
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
     const { alertText, message } = request;

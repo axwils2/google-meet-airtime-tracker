@@ -193,6 +193,9 @@ chrome.runtime.onMessage.addListener(
       }
 
       return true;
+    } else if (request.message === "meet_started" && !observer) {
+      startMonitoring();
+      sendResponse({ monitoring: true });
     }
   }
 );

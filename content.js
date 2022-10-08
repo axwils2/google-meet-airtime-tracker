@@ -4,6 +4,7 @@ let intervalId = null;
 
 const GOOGLE_MEET_OBSERVER_TARGET_CLASS = ".WUFI9b";
 const GOOGLE_MEET_SPEAKING_ICON_TARGET_CLASS = "IisKdb";
+const GOOGLE_MEET_ACTION_ICONS_CLASS = 'Q2qrwf';
 const MS_TEAMS_OBSERVER_TARGET_CLASS = ".ts-main";
 const MS_TEAMS_SPEAKING_ICON_TARGET_CLASS = 'speaking';
 
@@ -39,12 +40,17 @@ function defaultParticipant(name) {
 };
 
 function googleMeetParticipantId(target) {
-  let idStringContainer =  $(target)?.parent()?.parent()?.parent()?.parent()?.parent()
-  let idString = idStringContainer?.attr('data-participant-id');
+  let idStringContainer = $(target)?.parent()?.parent()?.parent()?.parent()?.parent()
+  let idString = null;
 
-  if (!idString) {
-    idStringContainer = $(target)?.parent()?.parent()?.parent()?.parent()?.parent()?.parent()?.parent();
+  for (let i = 0, i < 3, i++) {
     idString = idStringContainer?.attr('data-participant-id');
+
+    if (!!idString) {
+      break;
+    } else {
+      idStringContainer = idStringContainer?.parent();
+    }
   }
 
   if (!idString) return;
@@ -54,13 +60,21 @@ function googleMeetParticipantId(target) {
 };
 
 function googleMeetNameElement(target) {
-  let nameElContainer = $(target)?.parent()?.parent()?.parent()?.parent()?.prev();
-  let nameEl = nameElContainer.children()?.last()?.children()?.first()?.children()?.first();
+  let iconsParentContainer = $(target)?.parent().parent()?.parent()?.parent();
+  let nameElContainer = null;
 
-  if (!nameEl.text()) {
-    nameElContainer = $(target)?.parent()?.parent()?.parent()?.parent()?.parent()?.parent()?.prev();
-    nameEl = nameElContainer.children()?.last()?.children()?.first()?.children()?.first();
+  // Loop through max of 3 times to find the correct parent class. If it does
+  // not exist, give up
+  for (let i = 0, i < 3, i++) {
+    if ($(iconsParentContainer).hasClass(GOOGLE_MEET_ACTION_ICONS_CLASS)) {
+      nameElContainer = iconsParentContainer.prev();
+      break;
+    } else {
+      nameElContainer = nameElContainer?.parent();
+    }
   }
+
+  let nameEl = nameElContainer.children()?.last()?.children()?.first()?.children()?.first();
 
   if (!nameEl.text()) return;
 
@@ -151,7 +165,7 @@ function displayNotification() {
 
   setTimeout(function() {
     el.remove();
-	}, 1000);
+  }, 1000);
 };
 
 function stopMonitoring() {

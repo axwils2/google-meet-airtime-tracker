@@ -43,7 +43,7 @@ function googleMeetParticipantId(target) {
   let idStringContainer = $(target)?.parent()?.parent()?.parent()?.parent()?.parent()
   let idString = null;
 
-  for (let i = 0, i < 3, i++) {
+  for (let i = 0; i < 3; i++) {
     idString = idStringContainer?.attr('data-participant-id');
 
     if (!!idString) {
@@ -65,12 +65,12 @@ function googleMeetNameElement(target) {
 
   // Loop through max of 3 times to find the correct parent class. If it does
   // not exist, give up
-  for (let i = 0, i < 3, i++) {
+  for (let i = 0; i < 3; i++) {
     if ($(iconsParentContainer).hasClass(GOOGLE_MEET_ACTION_ICONS_CLASS)) {
       nameElContainer = iconsParentContainer.prev();
       break;
     } else {
-      nameElContainer = nameElContainer?.parent();
+      iconsParentContainer = iconsParentContainer?.parent();
     }
   }
 
